@@ -1,5 +1,50 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, Camera, ArrowUpDown } from 'lucide-react';
+
+// Self-contained SVG Icons to avoid external package import errors
+const IconChevronLeft = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+  </svg>
+);
+
+const IconChevronRight = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+const IconCalendar = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+);
+
+const IconCamera = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+    <circle cx="12" cy="13" r="3" strokeWidth={2} />
+  </svg>
+);
+
+const IconSwap = () => (
+  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+  </svg>
+);
+
+// Helper function to convert any date format safely without timezone shifts
+const getDateKey = (dateInput) => {
+  if (!dateInput) return '';
+  if (typeof dateInput === 'string' && dateInput.includes('-')) {
+    return dateInput.split('T')[0];
+  }
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export default function Dashboard({ trades = [] }) {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 7, 1)); // Default: August 2026
@@ -25,12 +70,19 @@ export default function Dashboard({ trades = [] }) {
   // Process trades into a lookup map by YYYY-MM-DD
   const tradesByDate = useMemo(() => {
     const map = {};
+    if (!Array.isArray(trades)) return map;
+
     trades.forEach((trade) => {
-      const dateKey = new Date(trade.date).toISOString().split('T')[0];
+      const rawDate = trade.date || trade.created_at || trade.trade_date;
+      const dateKey = getDateKey(rawDate);
+      if (!dateKey) return;
+
+      const pnlVal = Number(trade.pnl ?? trade.profit ?? trade.net_pnl ?? trade.amount ?? 0);
+
       if (!map[dateKey]) {
         map[dateKey] = { pnl: 0, count: 0 };
       }
-      map[dateKey].pnl += Number(trade.pnl || trade.profit || 0);
+      map[dateKey].pnl += pnlVal;
       map[dateKey].count += 1;
     });
     return map;
@@ -39,7 +91,7 @@ export default function Dashboard({ trades = [] }) {
   const firstDayIndex = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  // Monthly statistics
+  // Monthly aggregated statistics
   const monthlyStats = useMemo(() => {
     let totalPnL = 0;
     let activeDays = 0;
@@ -97,36 +149,47 @@ export default function Dashboard({ trades = [] }) {
   }, [year, month, daysInMonth, tradesByDate]);
 
   return (
-    <div className="bg-[#090d16] text-gray-100 min-h-screen p-6 font-sans">
-      {/* Top Header Controls */}
+    <div className="bg-[#090d16] text-gray-100 min-h-screen p-6 font-sans select-none">
+      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-bold text-white">Daily Summary</h1>
-        <button className="flex items-center gap-2 bg-[#131927] hover:bg-[#1a2336] text-gray-300 text-sm px-3.5 py-1.5 rounded-lg border border-slate-800 transition">
-          <Camera className="w-4 h-4" />
+        <button
+          onClick={() => alert('Sharing snapshot...')}
+          className="flex items-center gap-2 bg-[#131927] hover:bg-[#1a2336] text-gray-300 text-sm px-3.5 py-1.5 rounded-lg border border-slate-800 transition cursor-pointer"
+        >
+          <IconCamera />
           <span>Share</span>
         </button>
       </div>
 
+      {/* Control Bar */}
       <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center bg-[#131927] rounded-lg p-1 border border-slate-800">
-            <button onClick={prevMonth} className="p-1.5 hover:bg-[#1a2336] rounded-md text-gray-400 hover:text-white transition">
-              <ChevronLeft className="w-4 h-4" />
+            <button
+              onClick={prevMonth}
+              className="p-1.5 hover:bg-[#1a2336] rounded-md text-gray-400 hover:text-white transition cursor-pointer"
+            >
+              <IconChevronLeft />
             </button>
             <span className="px-3 text-sm font-semibold text-white">{monthYearString}</span>
-            <button onClick={nextMonth} className="p-1.5 hover:bg-[#1a2336] rounded-md text-gray-400 hover:text-white transition">
-              <ChevronRight className="w-4 h-4" />
+            <button
+              onClick={nextMonth}
+              className="p-1.5 hover:bg-[#1a2336] rounded-md text-gray-400 hover:text-white transition cursor-pointer"
+            >
+              <IconChevronRight />
             </button>
           </div>
           <button
             onClick={goToToday}
-            className="flex items-center gap-2 bg-[#131927] hover:bg-[#1a2336] text-gray-300 text-sm px-3 py-1.5 rounded-lg border border-slate-800 transition"
+            className="flex items-center gap-2 bg-[#131927] hover:bg-[#1a2336] text-gray-300 text-sm px-3 py-1.5 rounded-lg border border-slate-800 transition cursor-pointer"
           >
-            <Calendar className="w-4 h-4" />
+            <IconCalendar />
             <span>Today</span>
           </button>
         </div>
 
+        {/* PnL and Days Summary Pill */}
         <div className="bg-[#131927] border border-slate-800 rounded-lg px-4 py-1.5 flex items-center gap-4 text-sm font-medium">
           <div>
             <span className="text-slate-400">PnL: </span>
@@ -142,30 +205,10 @@ export default function Dashboard({ trades = [] }) {
         </div>
       </div>
 
-      {/* Main Content Layout */}
+      {/* Main Grid View */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Styled Calendar Card Container */}
+        {/* Calendar Container */}
         <div className="lg:col-span-3 bg-[#0d121f] p-6 rounded-2xl border border-slate-800/80 shadow-xl">
-          {/* Calendar Header with Navigation */}
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-white tracking-wide">{monthYearString}</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={prevMonth}
-                className="p-2 bg-[#141b2d] hover:bg-[#1c263e] border border-slate-800 rounded-xl text-slate-300 hover:text-white transition"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={nextMonth}
-                className="p-2 bg-[#141b2d] hover:bg-[#1c263e] border border-slate-800 rounded-xl text-slate-300 hover:text-white transition"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Days of Week Row */}
           <div className="grid grid-cols-7 text-center text-xs font-semibold text-slate-400 mb-3">
             <div>Sun</div>
             <div>Mon</div>
@@ -176,14 +219,13 @@ export default function Dashboard({ trades = [] }) {
             <div>Sat</div>
           </div>
 
-          {/* Day Grid Cells */}
           <div className="grid grid-cols-7 gap-2.5">
-            {/* Empty Offset Days */}
+            {/* Lead padding offset */}
             {Array.from({ length: firstDayIndex }).map((_, idx) => (
-              <div key={`empty-${idx}`} className="h-24 rounded-xl bg-[#121826]/40" />
+              <div key={`empty-${idx}`} className="h-24 rounded-xl bg-[#121826]/30" />
             ))}
 
-            {/* Active Calendar Days */}
+            {/* Calendar Days */}
             {Array.from({ length: daysInMonth }).map((_, idx) => {
               const day = idx + 1;
               const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -206,12 +248,10 @@ export default function Dashboard({ trades = [] }) {
 
                   {hasTrades && (
                     <div className="flex flex-col items-start gap-0.5">
-                      {dayData.count > 1 && (
-                        <div className="flex items-center gap-1 text-[10px] text-slate-400 mb-0.5">
-                          <span>{dayData.count}</span>
-                          <ArrowUpDown className="w-2.5 h-2.5" />
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1 text-[10px] text-slate-400 mb-0.5">
+                        <span>{dayData.count}</span>
+                        <IconSwap />
+                      </div>
                       <span className={`text-xs font-bold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {isProfit ? '+' : ''}${dayData.pnl.toFixed(2)}
                       </span>
@@ -223,7 +263,7 @@ export default function Dashboard({ trades = [] }) {
           </div>
         </div>
 
-        {/* Weekly Summary Panel */}
+        {/* Right Panel: Weekly Breakdown */}
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-slate-400 mb-2">Weekly Summary</h2>
           {weeks.map((week, idx) => (
