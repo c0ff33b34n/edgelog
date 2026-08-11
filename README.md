@@ -1,16 +1,46 @@
-# React + Vite
+# 📈 EdgeLog — Modern Trading Journal & Analytics
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+**EdgeLog** is a full-stack, responsive trading journal designed to help traders track performance, identify edge, and analyze risk. Built with **React**, **Tailwind CSS**, **Recharts**, and **Supabase**.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Features
 
-## React Compiler
+* **Interactive Trading Calendar:** Visual monthly breakdown showing daily profit/loss, trade count, and chart previews.
+* **Weekly Performance Breakdown:** Automated weekly aggregation for tracking consistency across trading blocks.
+* **Core Analytics & KPI Cards:**
+  * Total Net P&L
+  * Win Rate %
+  * Total Executed Trades
+* **Visual Performance Charts:**
+  * **Cumulative Equity Curve:** Real-time balance curve tracking performance over time.
+  * **Win vs. Loss Ratio:** Quick pie chart breakdown of winning vs. losing trades.
+  * **P&L by Day of the Week:** Bar chart identifying profitable vs. weak trading days.
+* **Trade Management:** Log trades with profit amounts, win/loss status, trade dates, and chart screenshot uploads.
+* **Authentication & Backend:** User authentication and row-level security powered by Supabase.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+* **Frontend:** React.js, Tailwind CSS
+* **Icons:** Lucide React
+* **Charts:** Recharts
+* **Backend & Database:** Supabase (PostgreSQL + Auth + Storage)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+* Node.js (v18 or higher)
+* npm or yarn
+* A [Supabase](https://supabase.com/) account
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/ijas-mehabin/edgelog.git](https://github.com/ijas-mehabin/edgelog.git)
+   cd edgelog
