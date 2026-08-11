@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient'
 import TradeModal from './TradeModal'
 import { ChevronLeft, ChevronRight, TrendingUp, DollarSign, Percent } from 'lucide-react'
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar 
 } from 'recharts'
 
@@ -49,19 +49,20 @@ export default function Dashboard({ user }) {
     { name: 'Wins', value: winningTrades },
     { name: 'Losses', value: totalTrades - winningTrades }
   ]
+
   const PIE_COLORS = ['#34d399', '#fb7185'] // Tailwind Emerald-400 and Rose-400
 
   // 3. P&L by Day of the Week Data
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const pnlByDayMap = dayNames.map(day => ({ day, pnl: 0 }))
-  
+
   trades.forEach(trade => {
     if (trade.trade_date) {
       // Split to avoid timezone shifting issues when parsing dates
       const [y, m, d] = trade.trade_date.split('-')
       const dateObj = new Date(y, m - 1, d)
       const dayIndex = dateObj.getDay()
-      
+             
       pnlByDayMap[dayIndex].pnl += Number(trade.amount)
     }
   })
@@ -234,17 +235,17 @@ export default function Dashboard({ user }) {
             const dateKey = `${year}-${monthStr}-${dayStr}`
             
             const dayTrades = trades.filter(t => t.trade_date === dateKey)
-            const dayPnL = dayTrades.length > 0
-               ? dayTrades.reduce((acc, t) => acc + Number(t.amount), 0)
-               : undefined
+            const dayPnL = dayTrades.length > 0 
+              ? dayTrades.reduce((acc, t) => acc + Number(t.amount), 0)
+              : undefined
             
             const tradeWithImage = dayTrades.find(t => t.image_url)
             let bgStyle = 'bg-slate-800/30 border-slate-800 hover:border-blue-500/50'
             
             if (dayPnL !== undefined) {
-              bgStyle = dayPnL >= 0
-                 ? 'bg-emerald-950/40 border-emerald-600/50 hover:border-emerald-500 text-emerald-400'
-                 : 'bg-rose-950/40 border-rose-600/50 hover:border-rose-500 text-rose-400'
+              bgStyle = dayPnL >= 0 
+                ? 'bg-emerald-950/40 border-emerald-600/50 hover:border-emerald-500 text-emerald-400' 
+                : 'bg-rose-950/40 border-rose-600/50 hover:border-rose-500 text-rose-400'
             }
             
             return (
