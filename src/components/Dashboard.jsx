@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, Camera, ArrowUpDown } from 'lucide-react';
 
 export default function Dashboard({ trades = [] }) {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 7, 1)); // Set to August 2026 by default
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 7, 1)); // Default: August 2026
 
   const prevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -36,7 +36,6 @@ export default function Dashboard({ trades = [] }) {
     return map;
   }, [trades]);
 
-  // Calendar matrix setup
   const firstDayIndex = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -98,59 +97,76 @@ export default function Dashboard({ trades = [] }) {
   }, [year, month, daysInMonth, tradesByDate]);
 
   return (
-    <div className="bg-[#0e1117] text-gray-100 min-h-screen p-6 font-sans">
-      {/* Daily Summary Header */}
+    <div className="bg-[#090d16] text-gray-100 min-h-screen p-6 font-sans">
+      {/* Top Header Controls */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-bold text-white">Daily Summary</h1>
-        <button className="flex items-center gap-2 bg-[#181c24] hover:bg-[#222733] text-gray-300 text-sm px-3 py-1.5 rounded-lg border border-gray-800 transition">
+        <button className="flex items-center gap-2 bg-[#131927] hover:bg-[#1a2336] text-gray-300 text-sm px-3.5 py-1.5 rounded-lg border border-slate-800 transition">
           <Camera className="w-4 h-4" />
           <span>Share</span>
         </button>
       </div>
 
-      {/* Control Bar */}
       <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex items-center bg-[#181c24] rounded-lg p-1 border border-gray-800">
-            <button onClick={prevMonth} className="p-1.5 hover:bg-[#222733] rounded-md text-gray-400 hover:text-white transition">
+          <div className="flex items-center bg-[#131927] rounded-lg p-1 border border-slate-800">
+            <button onClick={prevMonth} className="p-1.5 hover:bg-[#1a2336] rounded-md text-gray-400 hover:text-white transition">
               <ChevronLeft className="w-4 h-4" />
             </button>
             <span className="px-3 text-sm font-semibold text-white">{monthYearString}</span>
-            <button onClick={nextMonth} className="p-1.5 hover:bg-[#222733] rounded-md text-gray-400 hover:text-white transition">
+            <button onClick={nextMonth} className="p-1.5 hover:bg-[#1a2336] rounded-md text-gray-400 hover:text-white transition">
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
           <button
             onClick={goToToday}
-            className="flex items-center gap-2 bg-[#181c24] hover:bg-[#222733] text-gray-300 text-sm px-3 py-1.5 rounded-lg border border-gray-800 transition"
+            className="flex items-center gap-2 bg-[#131927] hover:bg-[#1a2336] text-gray-300 text-sm px-3 py-1.5 rounded-lg border border-slate-800 transition"
           >
             <Calendar className="w-4 h-4" />
             <span>Today</span>
           </button>
         </div>
 
-        {/* Top-Right Monthly PnL / Days Summary */}
-        <div className="bg-[#181c24] border border-gray-800 rounded-lg px-4 py-1.5 flex items-center gap-4 text-sm font-medium">
+        <div className="bg-[#131927] border border-slate-800 rounded-lg px-4 py-1.5 flex items-center gap-4 text-sm font-medium">
           <div>
-            <span className="text-gray-400">PnL: </span>
+            <span className="text-slate-400">PnL: </span>
             <span className={monthlyStats.totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
               {monthlyStats.totalPnL >= 0 ? '+' : ''}${monthlyStats.totalPnL.toFixed(2)}
             </span>
           </div>
-          <div className="h-4 w-px bg-gray-800" />
+          <div className="h-4 w-px bg-slate-800" />
           <div>
-            <span className="text-gray-400">Days: </span>
+            <span className="text-slate-400">Days: </span>
             <span className="text-white">{monthlyStats.activeDays}</span>
           </div>
         </div>
       </div>
 
-      {/* Main Grid View */}
+      {/* Main Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left Side: Calendar Grid */}
-        <div className="lg:col-span-3 bg-[#131720] p-4 rounded-xl border border-gray-800/80">
-          {/* Day Names */}
-          <div className="grid grid-cols-7 text-center text-xs font-semibold text-gray-400 mb-3">
+        {/* Styled Calendar Card Container */}
+        <div className="lg:col-span-3 bg-[#0d121f] p-6 rounded-2xl border border-slate-800/80 shadow-xl">
+          {/* Calendar Header with Navigation */}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-white tracking-wide">{monthYearString}</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={prevMonth}
+                className="p-2 bg-[#141b2d] hover:bg-[#1c263e] border border-slate-800 rounded-xl text-slate-300 hover:text-white transition"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={nextMonth}
+                className="p-2 bg-[#141b2d] hover:bg-[#1c263e] border border-slate-800 rounded-xl text-slate-300 hover:text-white transition"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Days of Week Row */}
+          <div className="grid grid-cols-7 text-center text-xs font-semibold text-slate-400 mb-3">
             <div>Sun</div>
             <div>Mon</div>
             <div>Tue</div>
@@ -160,14 +176,14 @@ export default function Dashboard({ trades = [] }) {
             <div>Sat</div>
           </div>
 
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-2">
-            {/* Offset blank cells for month start */}
+          {/* Day Grid Cells */}
+          <div className="grid grid-cols-7 gap-2.5">
+            {/* Empty Offset Days */}
             {Array.from({ length: firstDayIndex }).map((_, idx) => (
-              <div key={`empty-${idx}`} className="h-24 rounded-lg bg-[#0e1117]/30" />
+              <div key={`empty-${idx}`} className="h-24 rounded-xl bg-[#121826]/40" />
             ))}
 
-            {/* Days in Month */}
+            {/* Active Calendar Days */}
             {Array.from({ length: daysInMonth }).map((_, idx) => {
               const day = idx + 1;
               const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -178,22 +194,24 @@ export default function Dashboard({ trades = [] }) {
               return (
                 <div
                   key={day}
-                  className={`h-24 p-2 rounded-lg border flex flex-col justify-between transition ${
+                  className={`h-24 p-3 rounded-xl flex flex-col justify-between transition-all duration-200 ${
                     hasTrades
                       ? isProfit
-                        ? 'bg-[#0f2420] border-emerald-600/50 hover:border-emerald-500'
-                        : 'bg-[#29151a] border-rose-600/50 hover:border-rose-500'
-                      : 'bg-[#181c24]/50 border-gray-800/60 hover:border-gray-700'
+                        ? 'bg-[#0b211e] border border-emerald-500/80 shadow-sm shadow-emerald-950/50'
+                        : 'bg-[#261118] border border-rose-500/80 shadow-sm shadow-rose-950/50'
+                      : 'bg-[#121826] border border-slate-800/40 hover:border-slate-700'
                   }`}
                 >
-                  <span className="text-xs font-medium text-gray-300">{day}</span>
+                  <span className="text-sm font-semibold text-slate-200">{day}</span>
 
                   {hasTrades && (
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="flex items-center gap-1 text-[11px] text-gray-400">
-                        <span>{dayData.count}</span>
-                        <ArrowUpDown className="w-3 h-3" />
-                      </div>
+                    <div className="flex flex-col items-start gap-0.5">
+                      {dayData.count > 1 && (
+                        <div className="flex items-center gap-1 text-[10px] text-slate-400 mb-0.5">
+                          <span>{dayData.count}</span>
+                          <ArrowUpDown className="w-2.5 h-2.5" />
+                        </div>
+                      )}
                       <span className={`text-xs font-bold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {isProfit ? '+' : ''}${dayData.pnl.toFixed(2)}
                       </span>
@@ -205,30 +223,30 @@ export default function Dashboard({ trades = [] }) {
           </div>
         </div>
 
-        {/* Right Side: Weekly Summary Panel */}
+        {/* Weekly Summary Panel */}
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-400 mb-2">Weekly Summary</h2>
+          <h2 className="text-sm font-semibold text-slate-400 mb-2">Weekly Summary</h2>
           {weeks.map((week, idx) => (
-            <div key={idx} className="bg-[#181c24] border border-gray-800/80 rounded-xl p-4 text-sm">
+            <div key={idx} className="bg-[#131927] border border-slate-800/80 rounded-2xl p-4 text-sm">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-semibold text-white">{week.title}</span>
-                <span className="text-xs text-gray-400">{week.range}</span>
+                <span className="text-xs text-slate-400">{week.range}</span>
               </div>
               {week.days > 0 ? (
                 <div className="flex justify-between items-center mt-3 text-xs">
                   <div>
-                    <span className="text-gray-400">PnL: </span>
+                    <span className="text-slate-400">PnL: </span>
                     <span className={`font-semibold ${week.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {week.pnl >= 0 ? '+' : ''}${week.pnl.toFixed(2)}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-400">Days: </span>
+                    <span className="text-slate-400">Days: </span>
                     <span className="font-semibold text-white">{week.days}</span>
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-gray-500 mt-2">No trades</p>
+                <p className="text-xs text-slate-500 mt-2">No trades</p>
               )}
             </div>
           ))}
