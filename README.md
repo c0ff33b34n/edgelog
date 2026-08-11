@@ -29,18 +29,3 @@
 * **Backend & Database:** Supabase (PostgreSQL + Auth + Storage)
 
 ---
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-* Node.js (v18 or higher)
-* npm or yarn
-* A [Supabase](https://supabase.com/) account
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/ijas-mehabin/edgelog.git](https://github.com/ijas-mehabin/edgelog.git)
-   cd edgelog
