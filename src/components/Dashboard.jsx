@@ -1,287 +1,239 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import TradeModal from './TradeModal'
-import { ChevronLeft, ChevronRight, TrendingUp, DollarSign, Percent } from 'lucide-react'
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar 
-} from 'recharts'
+import React, { useState, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, Calendar, Camera, ArrowUpDown } from 'lucide-react';
 
-export default function Dashboard({ user }) {
-  const [trades, setTrades] = useState([])
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState(null)
-  const [selectedTrades, setSelectedTrades] = useState([])
-  const [isModalOpen, setIsModalOpen] = useState(false)
+export default function Dashboard({ trades = [] }) {
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 7, 1)); // Set to August 2026 by default
 
-  useEffect(() => {
-    fetchTrades()
-  }, [])
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
 
-  const fetchTrades = async () => {
-    const { data } = await supabase
-      .from('trades')
-      .select('*')
-      .eq('user_id', user.id)
-    if (data) setTrades(data)
-  }
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
 
-  // --- Analytics & Chart Data Prep ---
-  const totalTrades = trades.length
-  const winningTrades = trades.filter(t => t.is_win).length
-  const winRate = totalTrades > 0 ? ((winningTrades / totalTrades) * 100).toFixed(1) : '0'
-  const netPnL = trades.reduce((acc, t) => acc + Number(t.amount), 0)
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
 
-  // 1. Equity Curve Data (Sorted by date)
-  const sortedTrades = [...trades].sort((a, b) => new Date(a.trade_date) - new Date(b.trade_date))
-  let runningBalance = 0
-  const equityData = sortedTrades.map(trade => {
-    runningBalance += Number(trade.amount)
-    return {
-      date: trade.trade_date,
-      equity: runningBalance,
-      amount: Number(trade.amount)
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const monthName = currentDate.toLocaleString('default', { month: 'long' });
+  const monthYearString = `${monthName} ${year}`;
+
+  // Process trades into a lookup map by YYYY-MM-DD
+  const tradesByDate = useMemo(() => {
+    const map = {};
+    trades.forEach((trade) => {
+      const dateKey = new Date(trade.date).toISOString().split('T')[0];
+      if (!map[dateKey]) {
+        map[dateKey] = { pnl: 0, count: 0 };
+      }
+      map[dateKey].pnl += Number(trade.pnl || trade.profit || 0);
+      map[dateKey].count += 1;
+    });
+    return map;
+  }, [trades]);
+
+  // Calendar matrix setup
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Monthly statistics
+  const monthlyStats = useMemo(() => {
+    let totalPnL = 0;
+    let activeDays = 0;
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      if (tradesByDate[dateKey]) {
+        totalPnL += tradesByDate[dateKey].pnl;
+        activeDays += 1;
+      }
     }
-  })
+    return { totalPnL, activeDays };
+  }, [year, month, daysInMonth, tradesByDate]);
 
-  // 2. Win/Loss Pie Chart Data
-  const winLossData = [
-    { name: 'Wins', value: winningTrades },
-    { name: 'Losses', value: totalTrades - winningTrades }
-  ]
+  // Weekly breakdown computation
+  const weeks = useMemo(() => {
+    const weekList = [];
+    let currentWeekDays = [];
+    let weekIndex = 1;
+    const weekNames = ['One', 'Two', 'Three', 'Four', 'Five', 'Six'];
 
-  const PIE_COLORS = ['#34d399', '#fb7185'] // Tailwind Emerald-400 and Rose-400
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateObj = new Date(year, month, day);
+      const dayOfWeek = dateObj.getDay();
 
-  // 3. P&L by Day of the Week Data
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const pnlByDayMap = dayNames.map(day => ({ day, pnl: 0 }))
+      currentWeekDays.push({ day, dateObj });
 
-  trades.forEach(trade => {
-    if (trade.trade_date) {
-      // Split to avoid timezone shifting issues when parsing dates
-      const [y, m, d] = trade.trade_date.split('-')
-      const dateObj = new Date(y, m - 1, d)
-      const dayIndex = dateObj.getDay()
-             
-      pnlByDayMap[dayIndex].pnl += Number(trade.amount)
+      if (dayOfWeek === 6 || day === daysInMonth) {
+        let weekPnL = 0;
+        let weekActiveDays = 0;
+
+        currentWeekDays.forEach(({ day: d }) => {
+          const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          if (tradesByDate[dateKey]) {
+            weekPnL += tradesByDate[dateKey].pnl;
+            weekActiveDays += 1;
+          }
+        });
+
+        const startDate = currentWeekDays[0].dateObj.toLocaleString('default', { month: 'short', day: 'numeric' });
+        const endDate = currentWeekDays[currentWeekDays.length - 1].dateObj.toLocaleString('default', { month: 'short', day: 'numeric' });
+
+        weekList.push({
+          title: `Week ${weekNames[weekIndex - 1] || weekIndex}`,
+          range: `${startDate} - ${endDate}`,
+          pnl: weekPnL,
+          days: weekActiveDays,
+        });
+
+        weekIndex++;
+        currentWeekDays = [];
+      }
     }
-  })
-
-  // --- Calendar Date Logic ---
-  const year = currentDate.getFullYear()
-  const month = currentDate.getMonth()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const firstDayOfMonth = new Date(year, month, 1).getDay()
-  const formatMonth = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })
-
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1))
-
-  const handleDateClick = (day) => {
-    const monthStr = String(month + 1).padStart(2, '0')
-    const dayStr = String(day).padStart(2, '0')
-    const dateStr = `${year}-${monthStr}-${dayStr}`
-    const tradesOnDate = trades.filter(t => t.trade_date === dateStr)
-    setSelectedDate(dateStr)
-    setSelectedTrades(tradesOnDate)
-    setIsModalOpen(true)
-  }
+    return weekList;
+  }, [year, month, daysInMonth, tradesByDate]);
 
   return (
-    <div className="space-y-6">
-      {/* Analytics Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between shadow-lg">
-          <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Total Net P&L</p>
-            <h3 className={`text-2xl font-bold mt-1 ${netPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              ${netPnL.toFixed(2)}
-            </h3>
+    <div className="bg-[#0e1117] text-gray-100 min-h-screen p-6 font-sans">
+      {/* Daily Summary Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-xl font-bold text-white">Daily Summary</h1>
+        <button className="flex items-center gap-2 bg-[#181c24] hover:bg-[#222733] text-gray-300 text-sm px-3 py-1.5 rounded-lg border border-gray-800 transition">
+          <Camera className="w-4 h-4" />
+          <span>Share</span>
+        </button>
+      </div>
+
+      {/* Control Bar */}
+      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-[#181c24] rounded-lg p-1 border border-gray-800">
+            <button onClick={prevMonth} className="p-1.5 hover:bg-[#222733] rounded-md text-gray-400 hover:text-white transition">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="px-3 text-sm font-semibold text-white">{monthYearString}</span>
+            <button onClick={nextMonth} className="p-1.5 hover:bg-[#222733] rounded-md text-gray-400 hover:text-white transition">
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-          <div className="p-3 bg-slate-800/80 rounded-xl text-blue-400">
-            <DollarSign className="w-6 h-6" />
-          </div>
+          <button
+            onClick={goToToday}
+            className="flex items-center gap-2 bg-[#181c24] hover:bg-[#222733] text-gray-300 text-sm px-3 py-1.5 rounded-lg border border-gray-800 transition"
+          >
+            <Calendar className="w-4 h-4" />
+            <span>Today</span>
+          </button>
         </div>
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between shadow-lg">
+
+        {/* Top-Right Monthly PnL / Days Summary */}
+        <div className="bg-[#181c24] border border-gray-800 rounded-lg px-4 py-1.5 flex items-center gap-4 text-sm font-medium">
           <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Win Rate</p>
-            <h3 className="text-2xl font-bold mt-1 text-white">{winRate}%</h3>
+            <span className="text-gray-400">PnL: </span>
+            <span className={monthlyStats.totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+              {monthlyStats.totalPnL >= 0 ? '+' : ''}${monthlyStats.totalPnL.toFixed(2)}
+            </span>
           </div>
-          <div className="p-3 bg-slate-800/80 rounded-xl text-emerald-400">
-            <Percent className="w-6 h-6" />
-          </div>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between shadow-lg">
+          <div className="h-4 w-px bg-gray-800" />
           <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Executed Trades</p>
-            <h3 className="text-2xl font-bold mt-1 text-white">{totalTrades}</h3>
-          </div>
-          <div className="p-3 bg-slate-800/80 rounded-xl text-purple-400">
-            <TrendingUp className="w-6 h-6" />
+            <span className="text-gray-400">Days: </span>
+            <span className="text-white">{monthlyStats.activeDays}</span>
           </div>
         </div>
       </div>
 
-      {/* Graphical Representations */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Cumulative Equity Curve */}
-        <div className="md:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg">
-          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Cumulative Equity Curve</h3>
-          <div className="h-64 w-full">
-            {equityData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={equityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickMargin={10} />
-                  <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(value) => `$${value}`} />
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
-                    itemStyle={{ color: '#60a5fa' }}
-                  />
-                  <Line type="monotone" dataKey="equity" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-500">No trades yet to plot equity.</div>
-            )}
+      {/* Main Grid View */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Left Side: Calendar Grid */}
+        <div className="lg:col-span-3 bg-[#131720] p-4 rounded-xl border border-gray-800/80">
+          {/* Day Names */}
+          <div className="grid grid-cols-7 text-center text-xs font-semibold text-gray-400 mb-3">
+            <div>Sun</div>
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
           </div>
-        </div>
 
-        {/* Win/Loss Pie Chart */}
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg flex flex-col">
-          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Win vs Loss Ratio</h3>
-          <div className="h-64 w-full flex-grow">
-            {totalTrades > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={winLossData}
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {winLossData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }}
-                    itemStyle={{ color: '#f8fafc' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-500">Log trades to see win ratio.</div>
-            )}
-          </div>
-        </div>
+          {/* Calendar Days */}
+          <div className="grid grid-cols-7 gap-2">
+            {/* Offset blank cells for month start */}
+            {Array.from({ length: firstDayIndex }).map((_, idx) => (
+              <div key={`empty-${idx}`} className="h-24 rounded-lg bg-[#0e1117]/30" />
+            ))}
 
-        {/* P&L by Day of the Week Bar Chart */}
-        <div className="md:col-span-3 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg flex flex-col">
-          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Net P&L by Day of the Week</h3>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={pnlByDayMap}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="day" stroke="#94a3b8" fontSize={12} tickMargin={10} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(value) => `$${value}`} />
-                <RechartsTooltip 
-                  cursor={{ fill: '#1e293b' }}
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }}
-                  formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Net P&L']}
-                />
-                <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
-                  {pnlByDayMap.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.pnl >= 0 ? '#34d399' : '#fb7185'} 
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+            {/* Days in Month */}
+            {Array.from({ length: daysInMonth }).map((_, idx) => {
+              const day = idx + 1;
+              const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const dayData = tradesByDate[dateKey];
+              const hasTrades = !!dayData && dayData.count > 0;
+              const isProfit = hasTrades && dayData.pnl >= 0;
 
-      {/* Monthly Trading Calendar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white">{formatMonth}</h2>
-          <div className="flex gap-2">
-            <button onClick={prevMonth} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition active:scale-95">
-              <ChevronLeft className="w-5 h-5 text-slate-300" />
-            </button>
-            <button onClick={nextMonth} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition active:scale-95">
-              <ChevronRight className="w-5 h-5 text-slate-300" />
-            </button>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-slate-400 mb-2">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d}>{d}</div>)}
-        </div>
-        
-        <div className="grid grid-cols-7 gap-2">
-          {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-            <div key={`empty-${i}`} className="h-28 bg-slate-950/40 rounded-xl border border-slate-900/50" />
-          ))}
-          
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1
-            const monthStr = String(month + 1).padStart(2, '0')
-            const dayStr = String(day).padStart(2, '0')
-            const dateKey = `${year}-${monthStr}-${dayStr}`
-            
-            const dayTrades = trades.filter(t => t.trade_date === dateKey)
-            const dayPnL = dayTrades.length > 0 
-              ? dayTrades.reduce((acc, t) => acc + Number(t.amount), 0)
-              : undefined
-            
-            const tradeWithImage = dayTrades.find(t => t.image_url)
-            let bgStyle = 'bg-slate-800/30 border-slate-800 hover:border-blue-500/50'
-            
-            if (dayPnL !== undefined) {
-              bgStyle = dayPnL >= 0 
-                ? 'bg-emerald-950/40 border-emerald-600/50 hover:border-emerald-500 text-emerald-400' 
-                : 'bg-rose-950/40 border-rose-600/50 hover:border-rose-500 text-rose-400'
-            }
-            
-            return (
-              <button
-                key={day}
-                onClick={() => handleDateClick(day)}
-                className={`h-28 p-2 rounded-xl border transition text-left flex flex-col justify-between overflow-hidden relative group ${bgStyle}`}
-              >
-                <div className="flex justify-between items-center w-full z-10">
-                  <span className="text-xs font-semibold text-slate-400">{day}</span>
+              return (
+                <div
+                  key={day}
+                  className={`h-24 p-2 rounded-lg border flex flex-col justify-between transition ${
+                    hasTrades
+                      ? isProfit
+                        ? 'bg-[#0f2420] border-emerald-600/50 hover:border-emerald-500'
+                        : 'bg-[#29151a] border-rose-600/50 hover:border-rose-500'
+                      : 'bg-[#181c24]/50 border-gray-800/60 hover:border-gray-700'
+                  }`}
+                >
+                  <span className="text-xs font-medium text-gray-300">{day}</span>
+
+                  {hasTrades && (
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-1 text-[11px] text-gray-400">
+                        <span>{dayData.count}</span>
+                        <ArrowUpDown className="w-3 h-3" />
+                      </div>
+                      <span className={`text-xs font-bold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {isProfit ? '+' : ''}${dayData.pnl.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                {tradeWithImage && (
-                  <div className="w-full h-10 my-1 rounded overflow-hidden border border-slate-700/60 bg-slate-900/80">
-                    <img src={tradeWithImage.image_url} alt="Trade preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right Side: Weekly Summary Panel */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-400 mb-2">Weekly Summary</h2>
+          {weeks.map((week, idx) => (
+            <div key={idx} className="bg-[#181c24] border border-gray-800/80 rounded-xl p-4 text-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-semibold text-white">{week.title}</span>
+                <span className="text-xs text-gray-400">{week.range}</span>
+              </div>
+              {week.days > 0 ? (
+                <div className="flex justify-between items-center mt-3 text-xs">
+                  <div>
+                    <span className="text-gray-400">PnL: </span>
+                    <span className={`font-semibold ${week.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {week.pnl >= 0 ? '+' : ''}${week.pnl.toFixed(2)}
+                    </span>
                   </div>
-                )}
-                {dayPnL !== undefined && (
-                  <span className="text-xs font-bold z-10 mt-auto">
-                    {dayPnL >= 0 ? `+$${dayPnL.toFixed(2)}` : `-$${Math.abs(dayPnL).toFixed(2)}`}
-                  </span>
-                )}
-              </button>
-            )
-          })}
+                  <div>
+                    <span className="text-gray-400">Days: </span>
+                    <span className="font-semibold text-white">{week.days}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 mt-2">No trades</p>
+              )}
+            </div>
+          ))}
         </div>
       </div>
-
-      {isModalOpen && (
-        <TradeModal
-          selectedDate={selectedDate}
-          existingTrades={selectedTrades}
-          userId={user.id}
-          onClose={() => setIsModalOpen(false)}
-          onRefresh={fetchTrades}
-        />
-      )}
     </div>
-  )
+  );
 }
