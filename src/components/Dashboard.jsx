@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient'
 import TradeModal from './TradeModal'
 import { 
   ChevronLeft, ChevronRight, TrendingUp, DollarSign, Percent, 
-  Camera, Calendar, ArrowUpDown 
+  Calendar, ArrowUpDown 
 } from 'lucide-react'
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -172,13 +172,9 @@ export default function Dashboard({ user }) {
         </div>
       </div>
 
-      {/* Main Header & Controls Bar */}
-      <div className="flex justify-between items-center pt-2">
+      {/* Main Header */}
+      <div className="pt-2">
         <h1 className="text-xl font-bold text-white">Daily Summary</h1>
-        <button className="flex items-center gap-2 bg-[#131927] hover:bg-[#1a2336] text-gray-300 text-sm px-3.5 py-1.5 rounded-lg border border-slate-800 transition">
-          <Camera className="w-4 h-4" />
-          <span>Share</span>
-        </button>
       </div>
 
       <div className="flex flex-wrap justify-between items-center gap-4">
