@@ -28,4 +28,3 @@
 * **Charts:** Recharts
 * **Backend & Database:** Supabase (PostgreSQL + Auth + Storage)
 
----
